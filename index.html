@@ -1711,30 +1711,6 @@ Remember: You're a teacher, not an advisor. Your goal is to build their research
                 errorMessage += `</div>`;
                 addMessage('assistant', errorMessage);
             }
-                    throw new Error(error.error?.message || 'API request failed');
-                }
-                
-                const data = await response.json();
-                const assistantMessage = data.content[0].text;
-                
-                // Add assistant response to conversation history
-                conversationHistory.push({
-                    role: 'assistant',
-                    content: assistantMessage
-                });
-                
-                // Format and display the response
-                const formattedResponse = assistantMessage
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/\n/g, '<br>');
-                
-                addMessage('assistant', '<p>' + formattedResponse + '</p>');
-                
-            } catch (error) {
-                document.getElementById('loading').remove();
-                addMessage('assistant', `<div class="error">Error: ${error.message}<br><br>Please check your API key and try again.</div>`);
-            }
         }
         
         // Initialize on load
