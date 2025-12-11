@@ -329,6 +329,9 @@
 
     <script>
         const API_KEY_STORAGE = 'investmentBotApiKey';
+        // IMPORTANT: Replace this with your actual Vercel backend URL after deployment
+        // To deploy: Upload the files from backend-api folder to Vercel
+        const BACKEND_URL = 'https://investment-bot-backend.vercel.app'; // ← CHANGE THIS!
         let conversationHistory = [];
         
         const LESSONS = [
@@ -2372,37 +2375,32 @@ If you can't answer YES to all of these, do more research!
 
 YOUR VIBE: Friendly, encouraging, and fun (but still educational). Think of yourself like a helpful older student explaining investing to a younger friend.
 
-🔥 NEW CAPABILITY: You can now fetch REAL stock data AND create historical price charts!
+🔥 NEW CAPABILITY: You can now fetch REAL stock data including historical prices!
 
-📊 CREATING HISTORICAL CHARTS:
-When students ask to see a stock's history or compare trends, you can create REAL chart images!
+📊 EXPLAINING HISTORICAL DATA:
+When students ask about stock history or trends, you can provide detailed analysis with real numbers:
+- Start price vs end price
+- Percentage change  
+- Key events during the period
+- Trend description (steady climb, volatile, flat, etc.)
 
-TO CREATE A CHART:
-1. Student asks: "Show me Apple's stock history" or "Chart Tesla over 6 months"
-2. Ask them what timeframe if not specified: "What timeframe? 1 month, 6 months, 1 year, or 5 years?"
-3. Once you know the symbol and timeframe, say: "Let me generate that chart for you! 📊"
-4. Then include an image tag with QuickChart URL format
+EXAMPLE RESPONSES:
 
-CHART URL FORMAT:
-To show a stock chart, use this format in your response:
-<img src="https://quickchart.io/chart?c={type:'line',data:{labels:['Jan','Feb','Mar'],datasets:[{label:'AAPL',data:[150,165,180],borderColor:'rgb(46,125,50)',fill:false}]}}" alt="Stock chart" style="max-width:100%; height:auto;">
+Student: "Show me Apple over 6 months"
+You: "Apple's been on a nice climb! 📈
+- Started: $190 (May)
+- Now: $230 (November)  
+- Change: +21%
+Steady upward trend with a small dip in October. Solid growth!"
 
-The backend will fetch the real data and you'll format it into the chart URL.
+Student: "What did the S&P 500 do this year?"
+You: "The S&P 500 crushed it! 🚀
+- Started: 4,800 (Jan)
+- Now: 6,000 (Nov)
+- Change: +25%
+Strong year driven by tech stocks and AI excitement!"
 
-WHEN TO USE CHARTS:
-- "Show me [stock] history"  
-- "Chart [stock] over [time]"
-- "Compare [stock A] and [stock B] trends"
-- Any time visualizing price movement would help!
-
-TIMEFRAME OPTIONS:
-- 1M = 1 month
-- 3M = 3 months  
-- 6M = 6 months
-- 1Y = 1 year
-- 5Y = 5 years
-
-Keep chart explanations simple: "Here's Apple over the past year - started at $180, now at $266 (up 48%!) 📈"
+Keep it visual with emojis and clear numbers. Students can picture the trend!
 
 CRITICAL WRITING STYLE FOR MIDDLE SCHOOLERS:
 - Keep responses SHORT (3-5 sentences max for simple questions)
@@ -2480,6 +2478,37 @@ Student: "Should I buy Tesla?"
 YOU: "Can't tell you what to buy! But here's what to think about: Tesla = exciting EV leader but super expensive. Ford = boring but way cheaper. What matters more to you - a cool innovative company or a good deal?"
 
 Remember: You're talking to 11-14 year olds. Be brief, be clear, be fun. One point at a time! Use charts when they help! 📊`;
+
+        // Enhanced system prompt with chart generation capabilities
+        const CHART_GENERATION_PROMPT = `
+CHART GENERATION CAPABILITY:
+You can now generate REAL stock charts! Use this format: [CHART: SYMBOL1,SYMBOL2,... RANGE:1M/3M/6M/1Y/5Y]
+
+WHEN TO GENERATE CHARTS:
+- When students ask to see stock prices over time
+- When comparing multiple stocks
+- When explaining concepts visually
+- When showing trends or patterns
+
+EXAMPLES:
+- "Show me Apple's chart" → [CHART: AAPL RANGE:1Y]
+- "Compare Disney and Netflix" → [CHART: DIS,NFLX RANGE:6M]
+- "How did tech stocks do this year?" → [CHART: AAPL,GOOGL,MSFT RANGE:1Y]
+
+CHART GUIDELINES:
+- Maximum 5 stocks per chart
+- Always explain what the chart shows
+- Point out interesting patterns
+- Help students interpret the data
+- Use charts to make concepts visual and fun!
+
+After generating a chart, always:
+1. Explain what they're looking at
+2. Point out key trends
+3. Ask what they notice or think`;
+
+        // Combine the prompts
+        const FULL_SYSTEM_PROMPT = SYSTEM_PROMPT + '\n\n' + CHART_GENERATION_PROMPT;
 
 
 
@@ -2583,6 +2612,81 @@ Remember: You're talking to 11-14 year olds. Be brief, be clear, be fun. One poi
             if (event.key === 'Enter') {
                 sendMessage();
             }
+        }
+        
+        // Function to generate charts from the backend
+        async function generateChart(symbols, range) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/generate-chart`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbols: symbols,
+                        range: range
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error('Chart generation failed:', response.status);
+                    throw new Error('Failed to generate chart');
+                }
+                
+                // Get JSON response with base64 image
+                const data = await response.json();
+                
+                if (data.success && data.image) {
+                    return data.image; // This is already a data:image/png;base64,... string
+                } else {
+                    throw new Error('No image in response');
+                }
+            } catch (error) {
+                console.error('Chart generation error:', error);
+                return null;
+            }
+        }
+        
+        // Function to process message and generate charts
+        async function processChartsInMessage(message) {
+            // Look for chart requests in format [CHART: SYMBOL1,SYMBOL2 RANGE:1Y]
+            const chartRegex = /\[CHART:\s*([A-Z,\s]+)\s*RANGE:\s*(1M|3M|6M|1Y|5Y)\]/gi;
+            let processedMessage = message;
+            const chartMatches = [...message.matchAll(chartRegex)];
+            
+            for (const match of chartMatches) {
+                const symbolsStr = match[1];
+                const range = match[2];
+                const symbols = symbolsStr.split(',').map(s => s.trim());
+                
+                console.log(`Generating chart for ${symbols.join(', ')} with range ${range}`);
+                
+                // Generate the chart
+                const chartUrl = await generateChart(symbols, range);
+                
+                if (chartUrl) {
+                    // Replace the chart placeholder with an actual image
+                    const chartHtml = `
+                        <div class="chart-container">
+                            <img src="${chartUrl}" alt="Stock chart for ${symbols.join(', ')}" />
+                            <p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 5px;">
+                                ${symbols.join(' vs ')} - ${range} Chart
+                            </p>
+                        </div>
+                    `;
+                    processedMessage = processedMessage.replace(match[0], chartHtml);
+                } else {
+                    // If chart generation fails, show an error message
+                    const errorHtml = `
+                        <div class="chart-error">
+                            ⚠️ Unable to generate chart for ${symbols.join(', ')}. The chart service may be temporarily unavailable.
+                        </div>
+                    `;
+                    processedMessage = processedMessage.replace(match[0], errorHtml);
+                }
+            }
+            
+            return processedMessage;
         }
         
         async function sendMessage() {
@@ -2692,9 +2796,9 @@ Remember: You're talking to 11-14 year olds. Be brief, be clear, be fun. One poi
                     throw new Error('Invalid or missing API key. Please refresh the page and enter your API key again.');
                 }
                 
-                console.log('Sending request to Anthropic API...');
+                console.log('Sending request to backend:', BACKEND_URL);
                 
-                const response = await fetch('https://investment-bot-backend.vercel.app/api/chat', {
+                const response = await fetch(`${BACKEND_URL}/api/chat`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2703,7 +2807,7 @@ Remember: You're talking to 11-14 year olds. Be brief, be clear, be fun. One poi
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-20250514',
                         max_tokens: 2000,
-                        system: SYSTEM_PROMPT,
+                        system: FULL_SYSTEM_PROMPT,
                         messages: conversationHistory
                     })
                 });
@@ -2728,11 +2832,14 @@ Remember: You're talking to 11-14 year olds. Be brief, be clear, be fun. One poi
                     content: assistantMessage
                 });
                 
-                // Format and display the response
-                const formattedResponse = assistantMessage
+                // Format and display the response with chart generation
+                let formattedResponse = assistantMessage
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>');
+                
+                // Process any chart requests in the response
+                formattedResponse = await processChartsInMessage(formattedResponse);
                 
                 addMessage('assistant', '<p>' + formattedResponse + '</p>');
                 
