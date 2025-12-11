@@ -243,7 +243,41 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+       .chart-container {
+    margin: 20px 0;
+    text-align: center;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    border: 2px solid #e0e0e0;
+}
+
+.chart-container img {
+    max-width: 100%;
+    max-height: 400px;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+.chart-loading {
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}
+
+.chart-error {
+    background: #fff3cd;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    border-left: 4px solid #ffc107;
+} 
         .error {
             background: #fee;
             border: 2px solid #fcc;
