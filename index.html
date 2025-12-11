@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cranbrook Middle School Stock Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2E7D32 0%, #1565C0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2E7D32 0%, #1565C0 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .welcome-screen {
+            text-align: center;
+        }
+        
+        .welcome-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .welcome-screen p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .btn {
+            padding: 18px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2E7D32 0%, #1565C0 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(46, 125, 50, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .chat-container {
+            display: none;
+        }
+        
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+        
+        .message.user {
+            background: linear-gradient(135deg, #2E7D32 0%, #1565C0 100%);
+            color: white;
+            margin-left: 50px;
+        }
+        
+        .message.assistant {
+            background: white;
+            border: 2px solid #e0e0e0;
+            margin-right: 50px;
+        }
+        
+        .message.assistant h3 {
+            color: #1565C0;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .message.assistant h4 {
+            color: #2E7D32;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .message.assistant ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .message.assistant li {
+            margin-bottom: 8px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #1565C0;
+        }
+        
+        .btn-small {
+            padding: 15px 25px;
+            font-size: 14px;
+        }
+        
+        .back-btn {
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .setup-screen {
+            text-align: center;
+        }
+        
+        .setup-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .setup-screen p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .setup-screen input {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .setup-screen input:focus {
+            outline: none;
+            border-color: #1565C0;
+        }
+        
+        .loading:after {
+            content: '.';
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #c62828;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .chart-container {
+            margin: 20px 0;
+            text-align: center;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .chart-loading {
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .chart-error {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Cranbrook Investment Club Stock Bot</h1>
+            <p>Learn to Research • Analyze • Make Smart Decisions</p>
+        </div>
+        
+        <div class="content">
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <h2>Welcome, Future Investor!</h2>
+                <p>Ready to learn about the stock market? I'm your AI assistant here to help you research stocks, understand financial concepts, and develop smart investing strategies for your simulation game!</p>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="showSetupScreen()">
+                        🎯 Start Learning
+                    </button>
+                    <button class="btn btn-secondary" onclick="showRandomLesson()">
+                        📚 Teach Me Something New
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Setup Screen -->
+            <div id="setupScreen" class="setup-screen hidden">
+                <h2>🔑 Let's Get Started!</h2>
+                <p>To use the AI assistant, you'll need an Anthropic API key.</p>
+                <p>Ask your teacher for the club's API key, or use your own if you have one.</p>
+                
+                <input type="password" id="apiKeyInput" placeholder="Enter your API key (starts with sk-ant-...)">
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="saveApiKey()">
+                        ✅ Save and Continue
+                    </button>
+                    <button class="btn btn-secondary back-btn" onclick="showWelcomeScreen()">
+                        ← Back
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Container -->
+            <div id="chatContainer" class="chat-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                
+                <div class="input-group">
+                    <input type="text" id="userInput" placeholder="Ask me about stocks, investing, or research strategies..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="btn btn-primary btn-small" onclick="sendMessage()">Send</button>
+                    <button class="btn btn-secondary btn-small" onclick="showRandomLesson()">📚 New Lesson</button>
+                </div>
+                
+                <button class="btn btn-secondary back-btn" onclick="showWelcomeScreen()">
+                    ← Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY_STORAGE = 'cranbrook_api_key';
+        const BACKEND_URL = 'https://investment-bot-backend.vercel.app';
+        let conversationHistory = [];
+        
+        // Educational content - safe lessons for middle schoolers
+        const LESSONS = [
+            {
+                title: "🎯 What is a Stock?",
+                content: [
+                    "A stock represents partial ownership in a company. When you buy a stock, you become a shareholder!",
+                    "Think of it like this: If a company is a pizza with 8 slices, and you buy 1 slice (share), you own 1/8 of the pizza (company).",
+                    "**Key Points:**",
+                    "• Stocks are also called 'shares' or 'equity'",
+                    "• Stock prices go up and down based on how well the company is doing",
+                    "• You can make money if the stock price goes up (capital gains)",
+                    "• Some stocks pay dividends (share of profits) to owners"
+                ]
+            },
+            {
+                title: "📊 Understanding Stock Symbols",
+                content: [
+                    "Every stock has a ticker symbol - a short code to identify it quickly.",
+                    "**Examples:**",
+                    "• AAPL = Apple",
+                    "• DIS = Disney", 
+                    "• NKE = Nike",
+                    "• MSFT = Microsoft",
+                    "These symbols make it easy to look up stock prices and trade. They're like nicknames for companies on the stock market!"
+                ]
+            },
+            {
+                title: "🏢 What is Market Capitalization?",
+                content: [
+                    "Market Cap = Total value of all a company's shares",
+                    "**Formula:** Share Price × Number of Shares = Market Cap",
+                    "**Categories:**",
+                    "• Large Cap: Over $10 billion (Big, stable companies like Apple)",
+                    "• Mid Cap: $2-10 billion (Medium-sized, growing companies)",
+                    "• Small Cap: Under $2 billion (Smaller, newer companies)",
+                    "Bigger isn't always better - each size has pros and cons!"
+                ]
+            },
+            {
+                title: "💰 What are Dividends?",
+                content: [
+                    "Dividends are payments companies make to shareholders from their profits.",
+                    "**Example:** If you own 10 shares of a stock paying $2 per share annually, you get $20/year!",
+                    "**Two Types of Returns:**",
+                    "• Capital Gains: Stock price goes up",
+                    "• Dividends: Regular payments to shareholders",
+                    "Not all companies pay dividends - newer companies often reinvest profits to grow instead."
+                ]
+            },
+            {
+                title: "📈 Bull vs Bear Markets",
+                content: [
+                    "**Bull Market 🐂**",
+                    "• Stock prices are rising",
+                    "• Investors are optimistic",
+                    "• Economy usually doing well",
+                    "",
+                    "**Bear Market 🐻**",
+                    
